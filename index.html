@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aloe Vera Business Tracker</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #e1f4d3, #c2e59c);
+      padding: 30px;
+    }
+
+    h1 {
+      color: #2f6627;
+      animation: slideIn 1s ease-out forwards;
+      text-align: center;
+      position: relative;
+    }
+
+    .global-back-arrow {
+      position: absolute;
+      left: 30px;
+      top: 30px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #2f6627;
+      display: none;
+      z-index: 10;
+    }
+
+    .details .back-arrow {
+      display: block;
+      margin-bottom: 20px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #2f6627;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 40px;
+      max-width: 1200px;
+      margin: auto;
+      flex-wrap: wrap;
+    }
+
+    .form-container, .search-bar, .customer-list, .details {
+      background: white;
+      border-radius: 15px;
+      padding: 20px 30px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .form-container, .search-bar {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .search-bar {
+      margin: 20px auto 30px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      border-color: #88cc70;
+      outline: none;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .customer-list {
+      flex: 1;
+      min-width: 300px;
+      margin-top: 20px;
+    }
+
+    .details {
+      display: none;
+      flex: 1;
+      min-width: 300px;
+      margin-top: 20px;
+    }
+
+    .customer {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .customer:hover {
+      background: #f3f3f3;
+    }
+
+    .dots {
+      cursor: pointer;
+      font-size: 18px;
+      color: #555;
+      padding-left: 10px;
+    }
+
+    .dot-menu {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 5px;
+      border-radius: 5px;
+      z-index: 999;
+    }
+
+    .dot-menu div {
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+
+    .dot-menu div:hover {
+      background-color: #eee;
+    }
+
+    .edit-icon {
+      float: right;
+      cursor: pointer;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+
+    .hidden { display: none; }
+
+    @keyframes slideIn {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="global-back-arrow" id="backArrow" onclick="goBack()">←</div>
+  <h1>🌿 Aloe Vera Tracker</h1>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search customer by name..." onkeyup="handleSearchKey(event)">
+  </div>
+
+  <div class="container">
+    <div class="form-container">
+      <input type="text" id="customerName" placeholder="Customer Name">
+      <input type="number" id="saplings" placeholder="Saplings Given">
+      <input type="number" id="costPerKg" placeholder="Cost Per Kg (INR)">
+      <button onclick="saveCustomer()">Save Customer</button>
+    </div>
+
+    <div class="customer-list" id="customerList"></div>
+
+    <div class="details" id="customerDetails"></div>
+  </div>
+
+  <div class="dot-menu" id="dotMenu">
+    <div onclick="deleteCustomer()">Delete</div>
+  </div>
+
+  <script>
+    let customers = JSON.parse(localStorage.getItem("customers")) || [];
+    let isEditing = false;
+    let currentIndex = null;
+    displayCustomers();
+
+    function saveCustomer() {
+      const name = document.getElementById("customerName").value.trim();
+      const saplings = parseFloat(document.getElementById("saplings").value);
+      const cost = parseFloat(document.getElementById("costPerKg").value);
+
+      if (!name || isNaN(saplings) || isNaN(cost)) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      const totalAmount = saplings * cost;
+      const customer = { name, saplings, cost, totalAmount };
+      customers.push(customer);
+      localStorage.setItem("customers", JSON.stringify(customers));
+      displayCustomers();
+
+      document.getElementById("customerName").value = "";
+      document.getElementById("saplings").value = "";
+      document.getElementById("costPerKg").value = "";
+    }
+
+    function displayCustomers() {
+      const list = document.getElementById("customerList");
+      list.innerHTML = "<h3>Customer List</h3>";
+
+      customers.forEach((customer, index) => {
+        const div = document.createElement("div");
+        div.className = "customer";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.innerText = `${index + 1}. ${customer.name}`;
+        nameSpan.onclick = () => showDetails(index);
+
+        const dots = document.createElement("span");
+        dots.className = "dots";
+        dots.innerText = "⋮";
+        dots.onclick = (e) => {
+          e.stopPropagation();
+          showDotMenu(e, index);
+        };
+
+        div.appendChild(nameSpan);
+        div.appendChild(dots);
+        list.appendChild(div);
+      });
+    }
+
+    function showDotMenu(e, index) {
+      const menu = document.getElementById("dotMenu");
+      currentIndex = index;
+      menu.style.left = `${e.pageX}px`;
+      menu.style.top = `${e.pageY}px`;
+      menu.style.display = "block";
+    }
+
+    document.body.addEventListener("click", () => {
+      document.getElementById("dotMenu").style.display = "none";
+    });
+
+    function deleteCustomer() {
+      if (currentIndex !== null) {
+        customers.splice(currentIndex, 1);
+        localStorage.setItem("customers", JSON.stringify(customers));
+        displayCustomers();
+        document.getElementById("dotMenu").style.display = "none";
+      }
+    }
+
+    function showDetails(index) {
+      const customer = customers[index];
+      currentIndex = index;
+      isEditing = false;
+
+      document.getElementById("backArrow").style.display = "block";
+
+      const details = document.getElementById("customerDetails");
+      document.getElementById("customerList").style.display = "none";
+      details.style.display = "block";
+
+      details.innerHTML = `
+        <div class="back-arrow" onclick="goBack()">←</div>
+        <h3>Customer Details <span class="edit-icon" onclick="editDetails()">✏️</span></h3>
+        <p><strong>Name:</strong> <span id="displayName">${customer.name}</span></p>
+        <p><strong>Saplings Given:</strong> <span id="displaySaplings">${customer.saplings}</span></p>
+        <p><strong>Cost per Kg:</strong> ₹<span id="displayCost">${customer.cost}</span></p>
+        <p><strong>Total Amount:</strong> ₹<span id="displayTotal">${customer.totalAmount.toFixed(2)}</span></p>
+      `;
+    }
+
+    function editDetails() {
+      isEditing = true;
+      const customer = customers[currentIndex];
+      const details = document.getElementById("customerDetails");
+
+      details.innerHTML = `
+        <div class="back-arrow" onclick="goBack()">←</div>
+        <h3>Edit Customer Details</h3>
+        <p><strong>Name:</strong> <input type="text" id="editName" value="${customer.name}" /></p>
+        <p><strong>Saplings Given:</strong> <input type="number" id="editSaplings" value="${customer.saplings}" /></p>
+        <p><strong>Cost per Kg:</strong> <input type="number" id="editCost" value="${customer.cost}" /></p>
+        <button onclick="saveEdit(${currentIndex})">Save</button>
+      `;
+    }
+
+    function saveEdit(index) {
+      const name = document.getElementById("editName").value.trim();
+      const saplings = parseFloat(document.getElementById("editSaplings").value);
+      const cost = parseFloat(document.getElementById("editCost").value);
+
+      if (!name || isNaN(saplings) || isNaN(cost)) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      const totalAmount = saplings * cost;
+      customers[index] = { name, saplings, cost, totalAmount };
+      localStorage.setItem("customers", JSON.stringify(customers));
+      displayCustomers();
+      showDetails(index);
+    }
+
+    function goBack() {
+      document.getElementById("customerDetails").style.display = "none";
+      document.getElementById("customerList").style.display = "block";
+      document.getElementById("backArrow").style.display = "none";
+    }
+
+    function handleSearchKey(event) {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      searchCustomer();
+      if (event.key === "Enter") {
+        const index = customers.findIndex(c => c.name.toLowerCase() === input);
+        if (index !== -1) {
+          showDetails(index);
+        } else {
+          alert("Customer not found.");
+        }
+      }
+    }
+
+    function searchCustomer() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const list = document.getElementById("customerList");
+      const customersDiv = list.getElementsByClassName("customer");
+
+      for (let i = 0; i < customersDiv.length; i++) {
+        const txtValue = customersDiv[i].innerText.toLowerCase();
+        customersDiv[i].style.display = txtValue.includes(input) ? "flex" : "none";
+      }
+    }
+  </script>
+
+</body>
+</html>
